@@ -1,0 +1,15 @@
+# Python virtual environment
+Lib/
+Scripts/
+pyvenv.cfg
+*.lib
+*.dll
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Large ML frameworks (if installed locally)
+tensorflow/
+torch/

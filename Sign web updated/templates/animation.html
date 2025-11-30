@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="split left">
+    <h2 align="center">
+  <form action="{% url 'run_sign_gesture' %}" method="post">
+    {% csrf_token %}
+    <input type="submit" class="submit" value="SignGesture">
+  </form>
+          <form action="{% url 'Hand_sign' %}" method="post">
+    {% csrf_token %}
+    <input type="submit" class="submit" value="HandSign">
+  </form>
+</h2>
+    <h2 align="center">Enter Text or Use Mic</h2>
+
+    <form action="" method="post" align="left">
+        {% csrf_token %}
+        <input type="text" name="sen" class="mytext" id="speechToText" placeholder="">
+        <button type="button" name="button" class="mic" onClick="record()">
+            <img src="{% static 'mic3.png' %}" height="32px" width="38px" />
+        </button>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <input type="submit" name="submit" class="submit">
+    </form>
+
+    <table cellspacing="20px">
+        <tr>
+            <td class="td">The text that you entered is:</td>
+            <td class="td">{{ text }}</td>
+        </tr>
+        <tr>
+            <td class="td">Key words in sentence:</td>
+            <td class="td">
+                <ul class="td" id="list" align="center">
+                    {% for word in words %}
+                    <li id="{{ i }}" style="margin-right: 8px">{{ word }}</li>
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="split right">
+    <h2 align="center">Sign Language Animation</h2>
+    <div style="text-align:center">
+        &nbsp;&nbsp;
+        <button class="submit" onClick="playPause()">Play/Pause</button>
+        <video id="videoPlayer" width="600" height="350" preload="auto" autoplay>
+            <source src="" type="video/mp4">
+            Your browser does not support HTML5 video.
+        </video>
+    </div>
+</div>
+
+<script>
+async function record() {
+    var recognition = new webkitSpeechRecognition();
+    recognition.lang = 'hi-IN'; // Try both Hindi and English
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = async function(event) {
+        let speechText = event.results[0][0].transcript;
+        console.log("🗣 Detected Speech:", speechText);
+
+        // Detect if it's Hindi (Devanagari letters present)
+        const devanagariRegex = /[\u0900-\u097F]/;
+        if (devanagariRegex.test(speechText)) {
+            console.log("🌐 Detected Hindi → Translating...");
+            try {
+                // Use free Google Translate endpoint
+                const response = await fetch(
+                    `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURI(speechText)}`
+                );
+                const data = await response.json();
+                const translated = data[0][0][0];
+                document.getElementById("speechToText").value = translated;
+                console.log("✅ Translated to English:", translated);
+            } catch (error) {
+                console.error("Translation failed:", error);
+                document.getElementById("speechToText").value = speechText;
+            }
+        } else {
+            console.log("✅ English Text:", speechText);
+            document.getElementById("speechToText").value = speechText;
+        }
+    };
+
+    recognition.onerror = function(event) {
+        alert("Speech recognition error: " + event.error);
+    };
+
+    recognition.start();
+}
+
+// Existing play/pause + animation code remains the same
+function play() {
+    var videoSource = new Array();
+    var videos = document.getElementById("list").getElementsByTagName("li");
+    var j;
+    for (j = 0; j < videos.length; j++) {
+        videoSource[j] = "/static/" + videos[j].innerHTML + ".mp4";
+    }
+
+    var i = 0;
+    var videoCount = videoSource.length;
+
+    function videoPlay(videoNum) {
+        document.getElementById("list").getElementsByTagName("li")[videoNum].style.color = "#09edc7";
+        document.getElementById("list").getElementsByTagName("li")[videoNum].style.fontSize = "xx-large";
+        document.getElementById("videoPlayer").setAttribute("src", videoSource[videoNum]);
+        document.getElementById("videoPlayer").load();
+        document.getElementById("videoPlayer").play();
+    }
+
+    document.getElementById("videoPlayer").addEventListener("ended", myHandler, false);
+    document.getElementById("list").getElementsByTagName("li")[0].style.color = "#09edc7";
+    document.getElementById("list").getElementsByTagName("li")[0].style.fontSize = "xx-large";
+
+    videoPlay(0);
+
+    function myHandler() {
+        document.getElementById("list").getElementsByTagName("li")[i].style.color = "#feda6a";
+        document.getElementById("list").getElementsByTagName("li")[i].style.fontSize = "20px";
+        i++;
+        if (i == videoCount) {
+            document.getElementById("videoPlayer").pause();
+        } else {
+            videoPlay(i);
+        }
+    }
+}
+
+function playPause() {
+    if (document.getElementById("videoPlayer").paused) {
+        play();
+    } else {
+        document.getElementById("videoPlayer").pause();
+    }
+}
+</script>
+
+{% endblock %}
